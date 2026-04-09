@@ -63,6 +63,39 @@ npm start
 
 The Express server hosts the built frontend from `dist/` and the API under `/api/*` on the same port (default `5174`, override with `PORT`).
 
+## Self-hosting with Docker
+
+A `Dockerfile` and `docker-compose.yml` are included for one-command deployment.
+
+```bash
+docker compose up -d
+```
+
+That's it. Open http://localhost:5174 in your browser. The image is a tiny Alpine-based Node 22 build that bundles the compiled frontend and runs the Express server on port `5174`.
+
+### Connecting to a MySQL server on the host
+
+If your MySQL server is running on the same machine as Docker (not in another container), the container can't reach `localhost` directly. Uncomment the `extra_hosts` block in `docker-compose.yml`:
+
+```yaml
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+```
+
+…then use `mysql://user:pass@host.docker.internal:3306/db` as your connection URL inside WebBase.
+
+### Connecting to a MySQL container
+
+If MySQL also runs in Docker, just put both services on the same compose network and use the service name as the host (e.g. `mysql://user:pass@mysql:3306/db`).
+
+### Changing the port
+
+Edit the `ports` mapping in `docker-compose.yml` — e.g. `"8080:5174"` to publish WebBase on port 8080 of the host.
+
+### Security reminder
+
+WebBase has **no authentication**. Don't expose port `5174` to the public internet. If you need remote access, put it behind a reverse proxy with auth (Caddy + basic auth, Authelia, Tailscale, etc.).
+
 ## Connecting to a database
 
 Connections use a standard MySQL URL:
