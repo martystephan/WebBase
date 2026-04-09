@@ -28,6 +28,10 @@ export function ResultsTable({ result, editable, onCommitCell }: Props) {
   const [committing, setCommitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Set by cancelEdit() so the onBlur-triggered commit knows to skip.
+  // Without this, pressing Escape unmounts the input, which fires blur,
+  // which would commit the draft value the user just tried to discard.
+  const cancelledRef = useRef(false);
 
   const isRows = result.kind === "rows";
 
@@ -77,16 +81,22 @@ export function ResultsTable({ result, editable, onCommitCell }: Props) {
     if (!editable || !onCommitCell) return;
     if (!editable.columnByIndex.has(columnIndex)) return;
     setEditError(null);
+    cancelledRef.current = false;
     setEditing({ rowIndex, columnIndex });
     setDraft(cell === null ? "" : String(cell));
   }
 
   function cancelEdit() {
+    cancelledRef.current = true;
     setEditing(null);
     setDraft("");
   }
 
   async function commitEdit() {
+    if (cancelledRef.current) {
+      cancelledRef.current = false;
+      return;
+    }
     if (!editing || !onCommitCell || !editable) return;
     if (committing) return;
     const colInfo = editable.columnByIndex.get(editing.columnIndex);
